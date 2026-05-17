@@ -1,0 +1,1 @@
+"""VisionServe FastAPI application."""

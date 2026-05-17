@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "visionserve"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = ["fastapi>=0.110", "uvicorn[standard]>=0.27", "python-multipart>=0.0.9", "Pillow>=10", "numpy>=1.24", "pydantic-settings>=2.2", "torch>=2.1"]
+
+[project.scripts]
+vision-quality-gate = "app.quality_gate:main"
+
+[project.optional-dependencies]
+monitoring = ["streamlit>=1.32", "pandas>=2", "requests>=2.31"]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.4"]
+viz = ["matplotlib>=3.8"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
