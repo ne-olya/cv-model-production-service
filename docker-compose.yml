@@ -1,0 +1,21 @@
+services:
+  api:
+    build: .
+    ports: ["8000:8000"]
+    environment:
+      VISION_MODEL_VERSION: ${VISION_MODEL_VERSION:-demo-1.0.0}
+      VISION_DEVICE: cpu
+    volumes:
+      - ./models:/service/models:ro
+    restart: unless-stopped
+  dashboard:
+    build: .
+    command: ["sh", "-c", "pip install '.[monitoring]' && streamlit run monitoring/dashboard.py --server.address=0.0.0.0"]
+    working_dir: /service
+    environment:
+      VISION_API_URL: http://api:8000
+    volumes:
+      - ./monitoring:/service/monitoring:ro
+    ports: ["8501:8501"]
+    depends_on: [api]
+
