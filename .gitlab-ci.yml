@@ -1,0 +1,48 @@
+stages: [lint, test, quality, build, smoke]
+
+default:
+  image: python:3.11
+  cache:
+    paths: [.cache/pip]
+
+lint:
+  stage: lint
+  script:
+    - pip install -e '.[dev]'
+    - ruff check app tests
+
+unit-tests:
+  stage: test
+  script:
+    - pip install -e '.[dev]'
+    - pytest -q --junitxml=report.xml
+  artifacts:
+    when: always
+    reports: {junit: report.xml}
+
+model-quality-gate:
+  stage: quality
+  rules:
+    - exists: [reports/candidate.json, reports/production.json]
+  script:
+    - pip install -e .
+    - vision-quality-gate reports/candidate.json --baseline reports/production.json --min-macro-f1 0.75 --max-regression 0.01 --max-latency-ms 100
+
+docker-build:
+  stage: build
+  image: docker:27
+  services: [docker:27-dind]
+  script:
+    - docker build -t visionserve:$CI_COMMIT_SHA .
+    - docker save visionserve:$CI_COMMIT_SHA -o visionserve.tar
+  artifacts: {paths: [visionserve.tar], expire_in: 1 day}
+
+api-smoke:
+  stage: smoke
+  image: docker:27
+  services: [docker:27-dind]
+  script:
+    - docker load -i visionserve.tar
+    - docker run -d --name api visionserve:$CI_COMMIT_SHA
+    - sleep 10
+    - docker exec api python -c "import urllib.request; assert urllib.request.urlopen('http://localhost:8000/health').status == 200"
